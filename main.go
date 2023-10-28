@@ -1,98 +1,25 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/username/projectname/database"
+	"github.com/username/projectname/helpers"
+	"github.com/username/projectname/router"
 )
 
-type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type Photo struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Caption  string `json:"caption"`
-	PhotoURL string `json:"photoUrl"`
-	UserID   string `json:"userId"`
-}
-
-var users []User
-var photos []Photo
-
-func RegisterUser(w http.ResponseWriter, r *http.Request) {
-	var newUser User
-	_ = json.NewDecoder(r.Body).Decode(&newUser)
-
-	users = append(users, newUser)
-
-	json.NewEncoder(w).Encode(newUser)
-}
-
-func LoginUser(w http.ResponseWriter, r *http.Request) {
-	var loginUser User
-	_ = json.NewDecoder(r.Body).Decode(&loginUser)
-
-}
-
-func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["userId"]
-
-}
-
-func DeleteUser(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	userID := vars["userId"]
-
-}
-
-func CreatePhoto(w http.ResponseWriter, r *http.Request) {
-	var newPhoto Photo
-	_ = json.NewDecoder(r.Body).Decode(&newPhoto)
-
-	photos = append(photos, newPhoto)
-
-	json.NewEncoder(w).Encode(newPhoto)
-}
-
-func GetPhotos(w http.ResponseWriter, r *http.Request) {
-
-	json.NewEncoder(w).Encode(photos)
-}
-
-func UpdatePhoto(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	photoID := vars["photoId"]
-
-}
-
-func DeletePhoto(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	photoID := vars["photoId"]
-
-}
-
 func main() {
+	db := database.InitDB("username:password@tcp(localhost:3306)/dbname")
+	defer db.Close()
 
-	router := mux.NewRouter()
+	database.RunMigrations()
 
-	router.HandleFunc("/users/register", RegisterUser).Methods("POST")
-	router.HandleFunc("/users/login", LoginUser).Methods("POST")
-	router.HandleFunc("/users/{userId}", UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{userId}", DeleteUser).Methods("DELETE")
+	r := router.NewRouter()
 
-	router.HandleFunc("/photos", CreatePhoto).Methods("POST")
-	router.HandleFunc("/photos", GetPhotos).Methods("GET")
-	router.HandleFunc("/photos/{photoId}", UpdatePhoto).Methods("PUT")
-	router.HandleFunc("/photos/{photoId}", DeletePhoto).Methods("DELETE")
+	http.Handle("/", helpers.JwtMiddleware(r))
 
 	fmt.Println("Server started on :8000")
-	http.ListenAndServe(":8000", router)
+	http.ListenAndServe(":8000", nil)
 }
